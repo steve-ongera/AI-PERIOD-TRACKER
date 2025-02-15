@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard - Cycle Tracker{% endblock %}
+
+{% block content %}
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div class="bg-white p-4 rounded-lg shadow">
+        <h2 class="text-xl font-bold mb-4">Today</h2>
+        {% if today_entry %}
+            <div class="mb-4">
+                <p>Flow: {{ today_entry.get_flow_display }}</p>
+                <p>Mood: {{ today_entry.get_mood_display }}</p>
+                {% if today_entry.temperature %}
+                    <p>Temperature: {{ today_entry.temperature }}°C</p>
+                {% endif %}
+            </div>
+            <a href="{% url 'edit_day' today_entry.pk %}" class="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700">Edit Entry</a>
+        {% else %}
+            <p class="mb-4">No entry for today</p>
+            <a href="{% url 'add_day' %}" class="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700">Add Entry</a>
+        {% endif %}
+    </div>
+
+    <div class="bg-white p-4 rounded-lg shadow">
+        <h2 class="text-xl font-bold mb-4">Next Period Prediction</h2>
+        {% if latest_prediction %}
+            <p>Expected start: {{ latest_prediction.predicted_start_date }}</p>
+            <p>Confidence: {{ latest_prediction.confidence_score|floatformat:2 }}</p>
+        {% else %}
+            <p>Not enough data for prediction</p>
+        {% endif %}
+    </div>
+
+    <div class="bg-white p-4 rounded-lg shadow col-span-1 md:col-span-2">
+        <h2 class="text-xl font-bold mb-4">Recent Days</h2>
+        <div class="grid grid-cols-7 gap-2">
+            {% for day in recent_days %}
+            <div class="text-center p-2 rounded {% if day.flow %}bg-purple-100{% else %}bg-gray-100{% endif %}">
+                <p class="font-bold">{{ day.date|date:"D" }}</p>
+                <p class="text-sm">{{ day.date|date:"j" }}</p>
+                {% if day.flow %}
+                    <p class="text-xs">{{ day.get_flow_display }}</p>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}
