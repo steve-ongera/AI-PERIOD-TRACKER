@@ -80,7 +80,8 @@ def calendar_view(request):
         'end_date': end_date,
     }
     
-    return render(request, 'myperiods/calendar.html', context)
+    return render(request, 'calender/calendar.html', context)
+
 
 @login_required
 def settings_view(request):

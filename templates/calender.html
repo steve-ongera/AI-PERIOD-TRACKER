@@ -1,0 +1,188 @@
+{% extends 'base.html' %}
+{% load static %}
+
+
+{% block extra_head %}
+<style>
+    .calendar-day { min-height: 120px; }
+    .period-day { background-color: rgba(147, 51, 234, 0.1); }
+    .predicted-day { background-color: rgba(147, 51, 234, 0.05); }
+    .fertile-window { background-color: rgba(52, 211, 153, 0.1); }
+    .today { border: 2px solid #9333EA; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="bg-white rounded-lg shadow p-6">
+    <!-- Calendar Navigation -->
+    <div class="flex justify-between items-center mb-6">
+        <div class="flex space-x-4 items-center">
+            <a href="?date={{ prev_month }}" class="text-purple-600 hover:text-purple-800">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                </svg>
+            </a>
+            <h2 class="text-2xl font-bold text-gray-800">{{ current_date|date:"F Y" }}</h2>
+            <a href="?date={{ next_month }}" class="text-purple-600 hover:text-purple-800">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                </svg>
+            </a>
+        </div>
+        <a href="{% url 'cycle_tracker:add_day' %}" class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700">
+            Add Entry
+        </a>
+    </div>
+
+    <!-- Calendar Legend -->
+    <div class="flex space-x-6 mb-4 text-sm">
+        <div class="flex items-center">
+            <div class="w-4 h-4 rounded period-day border border-purple-200 mr-2"></div>
+            <span>Period</span>
+        </div>
+        <div class="flex items-center">
+            <div class="w-4 h-4 rounded predicted-day border border-purple-200 mr-2"></div>
+            <span>Predicted Period</span>
+        </div>
+        <div class="flex items-center">
+            <div class="w-4 h-4 rounded fertile-window border border-green-200 mr-2"></div>
+            <span>Fertile Window</span>
+        </div>
+    </div>
+
+    <!-- Calendar Grid -->
+    <div class="grid grid-cols-7 gap-px bg-gray-200 rounded-lg overflow-hidden">
+        <!-- Day Headers -->
+        <div class="bg-purple-50 p-2 text-center font-semibold">Sun</div>
+        <div class="bg-purple-50 p-2 text-center font-semibold">Mon</div>
+        <div class="bg-purple-50 p-2 text-center font-semibold">Tue</div>
+        <div class="bg-purple-50 p-2 text-center font-semibold">Wed</div>
+        <div class="bg-purple-50 p-2 text-center font-semibold">Thu</div>
+        <div class="bg-purple-50 p-2 text-center font-semibold">Fri</div>
+        <div class="bg-purple-50 p-2 text-center font-semibold">Sat</div>
+
+        <!-- Calendar Days -->
+        {% for week in calendar_weeks %}
+            {% for day in week %}
+                <div class="bg-white calendar-day p-2 {% if day.today %}today{% endif %} 
+                           {% if day.period %}period-day{% endif %}
+                           {% if day.predicted %}predicted-day{% endif %}
+                           {% if day.fertile %}fertile-window{% endif %}">
+                    
+                    <!-- Date Number -->
+                    <div class="flex justify-between items-start">
+                        <span class="text-sm {% if day.current_month %}font-semibold{% else %}text-gray-400{% endif %}">
+                            {{ day.date|date:"j" }}
+                        </span>
+                        {% if day.cycle_day %}
+                            <a href="{% url 'cycle_tracker:edit_day' day.cycle_day.id %}" 
+                               class="text-purple-600 hover:text-purple-800">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                          d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                </svg>
+                            </a>
+                        {% endif %}
+                    </div>
+
+                    <!-- Day Content -->
+                    {% if day.cycle_day %}
+                        <div class="mt-2 space-y-1">
+                            {% if day.cycle_day.flow %}
+                                <div class="text-xs px-2 py-1 rounded bg-purple-100 text-purple-800">
+                                    {{ day.cycle_day.get_flow_display }}
+                                </div>
+                            {% endif %}
+                            {% if day.cycle_day.mood %}
+                                <div class="text-xs px-2 py-1 rounded bg-blue-100 text-blue-800">
+                                    {{ day.cycle_day.get_mood_display }}
+                                </div>
+                            {% endif %}
+                            {% if day.cycle_day.symptoms.all %}
+                                <div class="text-xs text-gray-600 truncate">
+                                    {{ day.cycle_day.symptoms.all|join:", " }}
+                                </div>
+                            {% endif %}
+                        </div>
+                    {% endif %}
+
+                    <!-- Predictions -->
+                    {% if day.prediction %}
+                        <div class="mt-1 text-xs text-purple-600">
+                            {% if day.prediction.predicted_start_date == day.date %}
+                                Predicted Start
+                            {% endif %}
+                        </div>
+                    {% endif %}
+                </div>
+            {% endfor %}
+        {% endfor %}
+    </div>
+
+    <!-- Quick Stats -->
+    <div class="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="bg-purple-50 p-4 rounded-lg">
+            <h3 class="font-semibold text-purple-800">Last Period</h3>
+            <p class="text-purple-600">{{ last_period_start|date:"M j, Y" }}</p>
+        </div>
+        <div class="bg-purple-50 p-4 rounded-lg">
+            <h3 class="font-semibold text-purple-800">Next Predicted Period</h3>
+            <p class="text-purple-600">{{ next_predicted_date|date:"M j, Y" }}</p>
+        </div>
+        <div class="bg-purple-50 p-4 rounded-lg">
+            <h3 class="font-semibold text-purple-800">Average Cycle Length</h3>
+            <p class="text-purple-600">{{ avg_cycle_length }} days</p>
+        </div>
+    </div>
+</div>
+
+<!-- Modal for Quick Entry (optional) -->
+<div id="quickEntryModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+    <div class="bg-white rounded-lg p-6 max-w-md w-full">
+        <h3 class="text-lg font-semibold mb-4">Quick Entry</h3>
+        <form method="post" action="{% url 'cycle_tracker:add_day' %}" class="space-y-4">
+            {% csrf_token %}
+            <input type="hidden" name="date" id="quickEntryDate">
+            <div class="space-y-2">
+                <label class="block text-sm font-medium text-gray-700">Flow</label>
+                <select name="flow" class="w-full rounded-md border-gray-300">
+                    <option value="">None</option>
+                    {% for value, label in flow_choices %}
+                        <option value="{{ value }}">{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="flex justify-end space-x-2">
+                <button type="button" onclick="closeQuickEntry()" 
+                        class="px-4 py-2 text-gray-600 hover:text-gray-800">
+                    Cancel
+                </button>
+                <button type="submit" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700">
+                    Save
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function openQuickEntry(date) {
+        document.getElementById('quickEntryDate').value = date;
+        document.getElementById('quickEntryModal').classList.remove('hidden');
+    }
+
+    function closeQuickEntry() {
+        document.getElementById('quickEntryModal').classList.add('hidden');
+    }
+
+    // Close modal when clicking outside
+    document.getElementById('quickEntryModal').addEventListener('click', function(e) {
+        if (e.target === this) {
+            closeQuickEntry();
+        }
+    });
+</script>
+{% endblock %}
